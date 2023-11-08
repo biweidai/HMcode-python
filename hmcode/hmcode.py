@@ -15,7 +15,7 @@ from . import linear_growth
 Pk_lin_extrap_kmax = 1e10 # NOTE: This interplays with the sigmaV integration in a disconcerting way
 sigma_cold_approx = False # Should the Eisenstein & Hu (1999) approximation be used for the cold transfer function?
 
-def power(k:np.array, zs:np.array, CAMB_results:camb.CAMBdata, T_AGN=None,
+def power(k:np.array, zs:np.array, CAMB_results:camb.CAMBdata, T_AGN=None, feedback_params=None,
           Mmin=1e0, Mmax=1e18, nM=256, tweaks=True, verbose=False) -> np.ndarray:
     '''
     Calculates the HMcode matter-matter power spectrum
@@ -63,7 +63,7 @@ def power(k:np.array, zs:np.array, CAMB_results:camb.CAMBdata, T_AGN=None,
         print()
 
     # Baryonic feedback
-    if T_AGN:
+    if T_AGN and feedback_params is None:
         feedback_params = _get_feedback_parameters(T_AGN)
         if verbose:
             print('Using baryonic feedback model from HMCode2020')
@@ -176,7 +176,7 @@ def power(k:np.array, zs:np.array, CAMB_results:camb.CAMBdata, T_AGN=None,
                 print('Transition smoothing; alpha: {:.4}'.format(alpha))
             if T_AGN and not tweaks:
                 print('Gas-loss halo-mass parameter Mb: {:1e}'.format(Mb))
-                print('Effective halo stellar-mass fraction f*: {:.4f}'.format(f))
+                print('Effective halo stellar-mass fraction f*: {:.4f}'.format(fstar))
             print()
 
         # Halo concentration
@@ -360,7 +360,7 @@ def _get_feedback_parameters(T_AGN:float) -> dict:
     return params
 
 
-def _get_feedback_suppression(k:np.array, zs:np.array, CAMB_results:camb.CAMBdata, T_AGN:float, 
+def _get_feedback_suppression(k:np.array, zs:np.array, CAMB_results:camb.CAMBdata, T_AGN:float, feedback_params=None, 
                               Mmin=1e0, Mmax=1e18, nM=256, verbose=False) -> np.ndarray:
     '''
     Calculates the ratio of the powerspectrum with baryonic effects to that of dark-matter-only
@@ -368,8 +368,8 @@ def _get_feedback_suppression(k:np.array, zs:np.array, CAMB_results:camb.CAMBdat
     Warning: Since the fit for the baryonic effects was obtained with the vanilla halo model, 
     it is not safe to set tweaks=True below
     '''
-    Pk_gravity = power(k, zs, CAMB_results, T_AGN=None, Mmin=Mmin, Mmax=Mmax, nM=nM, 
-                       tweaks=False, verbose=verbose)
-    Pk_feedback = power(k, zs, CAMB_results, T_AGN=T_AGN, Mmin=Mmin, Mmax=Mmax, nM=nM, 
-                        tweaks=False, verbose=verbose)
+    Pk_gravity = power(k, zs, CAMB_results, T_AGN=None, feedback_params=feedback_params, 
+                       Mmin=Mmin, Mmax=Mmax, nM=nM, tweaks=False, verbose=verbose)
+    Pk_feedback = power(k, zs, CAMB_results, T_AGN=T_AGN, feedback_params=feedback_params,
+                        Mmin=Mmin, Mmax=Mmax, nM=nM, tweaks=False, verbose=verbose)
     return Pk_feedback/Pk_gravity
